@@ -1,0 +1,8 @@
+---
+- hosts: all
+  vars:
+    csr_config_file: /path/to/sample_config.txt
+    csr_ova_source: /path/to/ova/source
+    csr_vm_root: /path/to/vm/root
+  roles:
+    - mixja.csr1000v
