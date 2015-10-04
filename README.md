@@ -95,7 +95,7 @@ If an existing virtual machine exists at the target location, by default the pla
 ```bash
 TASK: [Fail if VM path exists] ************************************************
 failed: [localhost] => {"failed": true}
-msg: VM already exists.  Please set vm_overwrite variable to any value to overwrite the existing VM
+msg: VM already exists.  Please set csr_vm_overwrite variable to any value to overwrite the existing VM
 ``` 
 
 To overwrite a previous deployment, you can set the `csr_vm_overwrite` variable to any value, specifying this either in your playbook or by passing it as an extra variable via the command line (recommended):
