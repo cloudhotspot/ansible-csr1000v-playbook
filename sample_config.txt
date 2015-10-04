@@ -35,6 +35,9 @@ interface GigabitEthernet3
  ip address dhcp
  negotiation auto
 ip route 0.0.0.0 0.0.0.0 192.168.1.254
+no ip route 0.0.0.0 0.0.0.0 GigabitEthernet3 dhcp
+ip route 0.0.0.0 0.0.0.0 GigabitEthernet3 dhcp
+ip route vrf Mgmt-intf 0.0.0.0 0.0.0.0 dhcp
 line con 0
  stopbits 1
 line vty 0
