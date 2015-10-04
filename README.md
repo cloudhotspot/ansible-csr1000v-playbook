@@ -1,14 +1,14 @@
 # Sample Playbook for Automating Deployment of the Cisco CSR 1000V on VMWare Fusion
 
-This is an exmaple playbook that can be used to automate deployment of the Cisco Cloud Services Router (CSR) 1000V on VMWare Fusion, leveraging the csr1000v role I have published on Ansible Galaxy.
+This is an example playbook that can be used to automate deployment of the Cisco Cloud Services Router (CSR) 1000V on VMWare Fusion, leveraging the `mixja.csr1000v` role I have published on Ansible Galaxy.
 
-The playbook manually creates an OVF environment (VMWare Fusion does not support OVF environment creation by itself) to allow the CSR 1000V to provision and configure itself upon deployment.  
+The `mixja.csr1000v` role manually creates an OVF environment (VMWare Fusion does not support OVF environment creation by itself) to allow the CSR 1000V to provision and configure itself upon deployment.  
 
-This is controlled via an OVF environment file, which is deployed based upon the <a href="https://github.com/cloudhotspot/ansible-cisco-csr1000v/blob/master/templates/ovf-env.xml.j2" target="_blank">`templates/ovf-env.xml.j2` template</a> in this repository.  
+This is controlled via an OVF environment file, which is deployed based upon the <a href="https://github.com/cloudhotspot/ansible-csr1000v-role/blob/master/templates/ovf-env.xml.j2" target="_blank">`templates/ovf-env.xml.j2` template</a>.  
 
-The playbook packages this file into an ISO image that is then attached to the virtual machine, allowing the CSR 1000V guest to bootstrap its configuration based upon the OVF environment file.
+The `mixja.csr1000v` packages this file into an ISO image that is then attached to the virtual machine, allowing the CSR 1000V guest to bootstrap its configuration based upon the OVF environment file.
 
-See <a href="http://pseudo.co.de/ansible-cisco-csr1000v/" target="_blank">my blog post</a> for further details on this playbook.
+See <a href="http://pseudo.co.de/ansible-cisco-csr1000v/" target="_blank">my blog post</a> for further details on this role and playbook.
 
 This playbook has been tested on the following system:
 
@@ -25,7 +25,16 @@ This playbook has been tested on the following system:
 - <a href="http://www.ansible.com/" target="_blank">Ansible 1.9.x or higher (`brew install ansible`)
 - <a href="https://software.cisco.com/download/release.html?mdfid=284364978&softwareid=282046477&release=3.14.1S&relind=AVAILABLE&rellifecycle=ED&reltype=latest" target="_blank">Cisco CSR 1000v OVA Image</a> (CCO login required)
 
-This playbook also relies on the Ansible Galaxy <a href="https://github.com/yaegashi/ansible-role-blockinfile" target="_blank">yaegashi.blockinfile module</a>.  You must install this module prior to running the playbook:
+And of course the `mixja.csr1000v` role:
+```bash
+$ ansible-galaxy install mixja.csr1000v
+- downloading role 'csr1000v', owned by mixja
+- downloading role from https://github.com/mixja/ansible-csr1000v-role/archive/v0.5.tar.gz
+- extracting mixja.csr1000v to /usr/local/etc/ansible/roles/mixja.csr1000v
+- mixja.csr1000v was installed successfully
+```
+
+This `mixja.csr1000v` role also relies on the Ansible Galaxy <a href="https://github.com/yaegashi/ansible-role-blockinfile" target="_blank">yaegashi.blockinfile module</a>.  You must install this module prior to using the role:
 
 ```bash
 $ ansible-galaxy install yaegashi.blockinfile
@@ -40,11 +49,16 @@ $ ansible-galaxy install yaegashi.blockinfile
 First, clone this repository:
 
 ```bash
-$ git clone https://github.com/cloudhotspot/ansible-cisco-csr1000v.git
-$ cd ansible-cisco-csr1000v
+$ git clone https://github.com/cloudhotspot/ansible-csr1000v-playbook.git
+$ cd ansible-csr1000v-playbook
 ``` 
 
-Next, configure variables for your environment appropriately as described in the <a href="#configuration-variables">Configuration Variables</a> section.  
+Next, you must define the following variables for the `mixja.csr1000v` role:
+
+- `csr_ova_source`: The path to the CSR 1000V OVA image
+- `csr_vm_root`: The root path where you want the virtual machine deployed (e.g. `/Users/myname/Virtual Machines/`)
+
+Futher configuration variables can optionally be configured as described in the <a href="#configuration-variables">Configuration Variables</a> section.  
 
 To run the playbook for a new environment, use the `ansible-playbook site.yml` command.  You will be prompted for your password for sudo access:
 
@@ -70,9 +84,9 @@ localhost                  : ok=40   changed=24   unreachable=0    failed=0
 
 This will deploy a virtual machine to the following location:
 
-`{{ vm_destination }}/{{ vm_name }}.vmwarevm/`
+`{{ csr_vm_root }}/{{ csr_vm_name }}.vmwarevm/`
 
-For example, if `vm_destination` is **/Users/alice/vms** and `vm_name` is **csr01** the virtual machine will be deployed to **/Users/alice/vms/csr01.vmwarevm**.
+For example, if `csr_vm_root` is **/Users/alice/guests** and `csr_vm_name` is **csr01** (default) the virtual machine will be deployed to **/Users/alice/guests/csr01.vmwarevm**.
 
 ### Overwriting an Existing Virtual Machine
 
@@ -84,54 +98,28 @@ failed: [localhost] => {"failed": true}
 msg: VM already exists.  Please set vm_overwrite variable to any value to overwrite the existing VM
 ``` 
 
-To overwrite a previous deployment, you can set the `vm_overwrite` variable to any value, specifying this either in `vm_vars.yml` or by passing it as an extra variable via the command line (recommended):
+To overwrite a previous deployment, you can set the `csr_vm_overwrite` variable to any value, specifying this either in your playbook or by passing it as an extra variable via the command line (recommended):
 
-`$ ansible-playbook site.yml --extra-vars vm_overwrite=true`
+`$ ansible-playbook site.yml --extra-vars csr_vm_overwrite=true`
 
 ## <a name="configuration-variables"></a>Configuration Variables
 
-There are two files included in the playbook for configuration variables:
-
-- `vm_vars.yml` - configures the OVA source image, virtual machine settings, TFTP and DHCP settings
-- `csr_vars.yml` - configuration settings for the CSR1000v appliance
-
-### vm_vars.yml
-
-In general, you will only need to modify the user variables section appropriately for your environment:
+The following variables are available to configure:
 
 ```yaml
-# Location of the Cisco CSR 1000V OVA image 
-ova_source: "/Volumes/Promise RAID/Downloads/csr1000v-universalk9.03.14.01.S.155-1.S1-std.ova"
-
-# Root folder where the Cisco CSR 1000V virtual machine that will be created
-vm_destination: "/Volumes/Promise RAID/Virtual Machines.localized"
-
 # Name of the Cisco CSR 1000V virtual machine that will be created
-vm_name: "csr01"
+csr_vm_name: "csr01"
 
 # Last Octet of IP address assigned to CSR 1000V management interface.  This value should be between 3 and 127.
-vm_mgmt_ip_octet: "120"
+csr_vm_mgmt_ip_octet: "120"
 
 # Management Interface - 0 = Ethernet0/GigabitEthernet1, 1 = Ethernet1/GigabitEthernet2, 2 = Ethernet2/GigabitEthernet2
-vm_mgmt_interface: 2
+csr_vm_mgmt_interface: 2
 
 # Keep the DHCP reservation used for provisioning
-vm_persist_dhcp_reservation: yes
-```
+csr_vm_persist_dhcp_reservation: yes
 
-The default intended use case is to configure GigabitEthernet2 as a management interface that is attached to the `vmnet8` interface on the host.  This playbook configures a DHCP reservation based upon `vmnet8` interface IP address and uses the `vm_mgmt_ip_octet` value to configure the desired last octet of the management interface IP address.
-
-By default this playbook also provisions the management IP address and `vm_name` value into the local machines `/etc/hosts` file.
-
-For example, if the `vmnet8` interface subnet is **192.168.100.0/24** (this will vary for each VMWare Fusion environment) and the `vm_mgmt_ip_octet` value is **120**, then the management IP address assigned to the CSR 1000V virtual machine will be **192.168.100.120**.  
-
-If you only wish to temporarily use the dynamic management interface IP address (e.g. because you are overwriting the management interface with your own configuration using a `csr_config_file`), you should remove the DHCP reservation after provisioning by setting the `vm_persist_dhcp_reservation` variable to **no**.  Setting this variable to **no** will remove the DHCP reservation and also will not provision the management IP address and VM name into the local `/etc/hosts` file.
-
-### csr_vars.yml
-
-In general, you will only need to modify the user variables section, which is self explanatory:
-
-```yaml
+# CSR 1000V configuration variables
 csr_name: csr01
 csr_admin_username: admin
 csr_admin_password: Pass1234
@@ -143,6 +131,16 @@ csr_enable_scp: False
 # Set to 'ax' or 'appx'
 csr_license_level: appx
 ```
+
+## Management Interface Configuration
+
+The default intended use case is to configure GigabitEthernet2 as a management interface that is attached to the `vmnet8` interface on the host.  This playbook configures a DHCP reservation based upon `vmnet8` interface IP address and uses the `csr_vm_mgmt_ip_octet` value to configure the desired last octet of the management interface IP address.
+
+By default this playbook also provisions the management IP address and `csr_vm_name` value into the local machines `/etc/hosts` file.
+
+For example, if the `vmnet8` interface subnet is **192.168.100.0/24** (this will vary for each VMWare Fusion environment) and the `vm_mgmt_ip_octet` value is **120**, then the management IP address assigned to the CSR 1000V virtual machine will be **192.168.100.120**.  
+
+If you only wish to temporarily use the dynamic management interface IP address (e.g. because you are overwriting the management interface with your own configuration using a `csr_config_file`), you should remove the DHCP reservation after provisioning by setting the `csr_vm_persist_dhcp_reservation` variable to **no**.  Setting this variable to **no** will remove the DHCP reservation and also will not provision the management IP address and VM name into the local `/etc/hosts` file.
 
 ## Bring your own CSR 1000V configuration
 
