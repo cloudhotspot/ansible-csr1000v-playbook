@@ -191,3 +191,7 @@ The modified configuration file snippet above will result in OVF environment set
 <Property oe:key="com.cisco.csr1000v.ios-config-0010.1" oe:value=" server-private 192.168.1.201 auth-port 1812 acct-port 1813 key pass1234"/>
 <Property oe:key="com.cisco.csr1000v.ios-config-0011.1" oe:value="aaa authentication login default local"/>
 ```
+
+## Known Issues
+
+- https://github.com/cloudhotspot/ansible-csr1000v-role/issues/2
